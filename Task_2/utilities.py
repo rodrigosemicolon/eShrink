@@ -175,15 +175,8 @@ class WordEmbeddingVectorizer:
     
         vecs = []
         for token in tokens:
-            #print(word)
-            #if word in embeddings:
-            #vecs+=[embeddings[token]]
             vecs+=[self.embeddings[token]]
             
-            #vecs+=[embeddings.get_vector(token, norm=True)]
-            
-            #else:
-            #    vecs+=[np.zeros(embeddings.vector_size)]
         if method=='mean':
             return np.mean(vecs, axis=0)
         elif method=='max':
@@ -195,7 +188,6 @@ class WordEmbeddingVectorizer:
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score
-#from sklearn.preprocessing import MinMaxScaler
 
 
 def custom_cv(model, df, n_folds=5,sent =False ):
@@ -204,8 +196,6 @@ def custom_cv(model, df, n_folds=5,sent =False ):
     users = user_label_df['User'].to_numpy()
     
     labels = user_label_df['Label'].to_numpy()
-    #print(labels)
-    #print(users.shape,labels.shape)
     
     f1_scores = []
     for train_index, test_index in skf.split(users, labels):
@@ -214,18 +204,11 @@ def custom_cv(model, df, n_folds=5,sent =False ):
 
         train_folds = df[df['User'].isin(train_users)].copy()
         test_folds = df[df['User'].isin(test_users)].copy()
-        #train_folds['Tokens'] = train_folds['Text'].apply(lambda s:[glove_embeddings.key_to_index.get(tok,glove_embeddings.key_to_index['<unk>']) for tok in s.split(" ")])
-        #test_folds['Tokens'] = test_folds['Text'].apply(lambda s:[glove_embeddings.key_to_index.get(tok,glove_embeddings.key_to_index['<unk>']) for tok in s.split(" ")])
-        #train_folds['Vector'] = train_folds['Tokens'].apply(lambda post:vectorize_post(post,glove_embeddings,METHOD))
-        #test_folds['Vector'] = test_folds['Tokens'].apply(lambda post:vectorize_post(post,glove_embeddings,METHOD))
         X_train = pd.DataFrame(train_folds['Vector'].values.tolist(), index = train_folds.index)
         y_train = train_folds['Label']
         X_test = pd.DataFrame(test_folds['Vector'].values.tolist(), index = test_folds.index)
         y_test = test_folds['Label']
         if sent:
-            #scaler = MinMaxScaler()
-            #train_folds[['polarity','subjectivity','negativity','positivity','neutrality','compound']] = scaler.fit_transform(train_folds[['polarity','subjectivity','negativity','positivity','neutrality','compound']])
-            #test_folds[['polarity','subjectivity','negativity','positivity','neutrality','compound']] = scaler.transform(test_folds[['polarity','subjectivity','negativity','positivity','neutrality','compound']])
             X_train = np.c_[X_train,train_folds['polarity'],train_folds['subjectivity'],train_folds['negativity'],train_folds['positivity'],train_folds['neutrality'], train_folds['compound']] 
             X_test = np.c_[X_test,test_folds['polarity'],test_folds['subjectivity'],test_folds['negativity'],test_folds['positivity'],test_folds['neutrality'], test_folds['compound']] 
             
@@ -239,7 +222,6 @@ def custom_cv(model, df, n_folds=5,sent =False ):
 
 
 def sa_features(df):
-    #if BASELINE_COMP:
     from textblob import TextBlob
     from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
@@ -281,11 +263,9 @@ def save_embeddings(filepath, embeddings):
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-#from transformers import AutoTokenizer
 seed=23
 torch.manual_seed(seed)
 
-#tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 
 class WritingWindowDataset(Dataset):
     def __init__(self, vectors, labels):
@@ -318,9 +298,6 @@ class WritingWindowDataset(Dataset):
 class LmNeuralNetwork(nn.Module):
     def __init__(self, trial):
         super(LmNeuralNetwork, self).__init__()
-        #self.Lm = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
-        #for param in self.Lm.parameters():
-        #    param.requires_grad = False
         self.layers=[]
         n_layers = trial.suggest_int("n_layers", 1, 3)
 
@@ -334,15 +311,9 @@ class LmNeuralNetwork(nn.Module):
 
             in_features = out_features
         self.layers.append(nn.Linear(in_features, 1))
-        #self.classifier = nn.Sequential(*self.layers)
         self.cls_layers = torch.nn.ModuleList(self.layers)
-    #def forward(self, input_id, mask):
     def forward(self, x):
 
-        #_, output = self.Lm(input_ids= input_id, attention_mask=mask,return_dict=False)
         for layer in self.cls_layers:
             x = layer(x)
-        #output=self.cls_layers(features)
         return torch.sigmoid(x)
-
-#model = LmNeuralNetwork()
